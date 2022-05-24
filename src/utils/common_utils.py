@@ -1,9 +1,9 @@
 import json
 import re
 import subprocess
-from _ctypes import Union
 from datetime import date, timedelta
 from hashlib import md5
+from typing import Union
 
 import loguru
 from apscheduler.triggers.cron import CronTrigger

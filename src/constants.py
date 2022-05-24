@@ -1,6 +1,8 @@
 from enum import IntEnum
 
 UTF8 = 'UTF-8'
+TASK_INFO_KEY = 'DOWNLOAD_TASK_INFO'
+DEFAULT_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
 class TaskStatus(IntEnum):

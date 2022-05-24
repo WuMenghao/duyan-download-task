@@ -1,19 +1,46 @@
 import datetime
+import json
 
 import loguru
 import redis
+from apscheduler.schedulers.blocking import BlockingScheduler
 from redis.client import Pipeline
 
+from src import constants
 from src.constants import TaskStatus, ItemStatus
 from src.model import DownloadTaskMain, DownloadItem
+from src.task import SubTypeInfo
 from src.utils import mysql_util, common_utils
 from src.utils.config_util import Config
 from src.utils.logger_util import LOG
 
-SUB_TYPE_QUEUE_DICT = {}
+SUB_TYPE_QUEUE_DICT = {}  # TODO 放到redis 由子任务脚本注册
 
 
-class CtiDownloadTaskDispatcher:
+class DownloadTaskScheduler(object):
+    """
+    调度任务启动类
+    """
+
+    def __init__(self, config_path, log_path, cron="0 0-59/2 * * * *"):
+        self.cron = common_utils.get_cron_trigger_for_str(cron)
+        self.task_dispatcher = CtiDownloadTaskDispatcher(config_path, log_path)
+        self.task_status_manager = CtiDownloadTaskStatusManager(config_path, log_path)
+        self.blocking_scheduler = BlockingScheduler()
+
+    def heart_beat(self):
+        loguru.logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ heart beat ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+    def start(self):
+        self.blocking_scheduler.add_job(self.task_dispatcher.execute_job, trigger=self.cron,
+                                        next_run_time=datetime.datetime.now(), max_instances=1)
+        self.blocking_scheduler.add_job(self.task_status_manager.execute_job, trigger=self.cron,
+                                        next_run_time=datetime.datetime.now(), max_instances=1)
+        # heart_beat
+        self.blocking_scheduler.add_job(self.heart_beat, "interval", seconds=60)
+
+
+class CtiDownloadTaskDispatcher(object):
     """
     download_item任务分发到不同队列
     """
@@ -33,6 +60,7 @@ class CtiDownloadTaskDispatcher:
 
     @loguru.logger.catch
     def execute_job(self) -> object:
+        self.get_and_refresh_task_info()
         update_task = list()
         # 数据查询分组
         download_tasks = self.repository.get_download_tasks()
@@ -78,6 +106,19 @@ class CtiDownloadTaskDispatcher:
                 self._logger.info(f"download_item[ID:{item_id}]加入任务队列{queue_key}成功,sub_type:{sub_type}")
             else:
                 self._logger.error(f"不存在的子类型,download_item[ID]:{item_id},sub_type:{sub_type}")
+
+    def get_and_refresh_task_info(self):
+        """
+        刷新任务信息
+        :return:
+        """
+        results = self._redisCli.hgetall(constants.TASK_INFO_KEY)
+        if results:
+            for key, value in results.items():
+                key = int(bytes.decode(key))
+                value = bytes.decode(value)
+                info: SubTypeInfo = json.loads(value, cls=SubTypeInfo)
+                SUB_TYPE_QUEUE_DICT[key] = info.queue_key
 
 
 class CtiDownloadTaskStatusManager(object):
@@ -139,7 +180,8 @@ class CtiDownloadTaskStatusManager(object):
             # if is_everyday_pre_download_task(download_task_po.sub_type):
             #     continue
             # task 所有非带参item都过期 过期task
-            exceed_items = self.repository.get_download_items(download_task_po.id, ItemStatus.EXCEED.value)
+            exceed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id,
+                                                                                    ItemStatus.EXCEED.value)
             real_items = self.repository.get_all_download_items(download_task_po.id)
             if len(exceed_items) > 0 and len(exceed_items) == len(real_items):
                 expire_task.append(download_task_po.id)
@@ -226,7 +268,7 @@ class Repository(object):
                                                           'limit_time': limit_time})
         return download_tasks
 
-    def get_download_items(self, download_task_id: int, status: int) -> list:
+    def get_download_items_by_task_id_and_status(self, download_task_id: int, status: int) -> list:
         """
         获取download_items列表
         :param download_task_id:
