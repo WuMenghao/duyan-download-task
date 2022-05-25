@@ -17,7 +17,7 @@ from src.utils.config_util import Config
 SubTypeInfo = namedtuple('SubTypeInfo', ['task_name', 'type', 'sub_type', 'queue_key', 'is_multi_task'])
 
 
-class ExportTaskBase:
+class DownloadTaskBase:
 
     def __init__(self, task_info: SubTypeInfo, config_path: str, logger_name: str, max_job=1,
                  cron="0 0-59/2 * * * *"):
@@ -44,6 +44,7 @@ class ExportTaskBase:
             self.job_map[f"{task_info.task_name}-i"] = 0
         self.blocking_scheduler = BlockingScheduler()
         self._logger.info("程序开始...")
+        self.init()
 
     def init(self):
         # 注册信息
@@ -95,7 +96,8 @@ class ExportTaskBase:
         """
         self.heart_beat()
         task_item_id = self.get_task()
-        self.execute_unit_job(task_item_id, job_name)
+        if task_item_id:
+            self.execute_unit_job(job_name, task_item_id)
 
     @loguru.logger.catch
     def execute_batch_job(self, job_name, batch_size: int = 10):
@@ -107,7 +109,7 @@ class ExportTaskBase:
         assert batch_size > 0
         task_item_ids = self.get_task_batch(batch_size)
         for task_item_id in task_item_ids:
-            self.execute_unit_job(task_item_id, job_name)
+            self.execute_unit_job(job_name, task_item_id)
 
     def execute_unit_job(self, job_name, task_item_id: int) -> object:
         """
@@ -124,6 +126,9 @@ class ExportTaskBase:
                 return
             self._logger.info(f"ITEM:[ID:{task_item_id}],任务开始执行")
             self.job_map[job_name] = task_item_id
+
+            # 更新为下载中
+            self.repository.update_processing_item(task_item_id)
 
             # 查询任务记录
             task_item_obj = self.repository.get_task_item(task_item_id)
@@ -161,8 +166,6 @@ class ExportTaskBase:
                 self._logger.warning(f"TASK[ID:{task_id}],ITEM[ID:{item_id}],任务状态为：{status}，不予处理.")
                 return
 
-            # 更新为下载中
-            self.repository.update_processing_item(task_item_id)
             # 导出上传逻辑
             url, md5_value, file_name = self.export(task_item, data_obj)
             # 跟新为已完成
@@ -282,7 +285,7 @@ class Repository(object):
         :param item_id:
         :return:
         """
-        sql = f"select * form download_item where id = {item_id}"
+        sql = f"select * from download_item where id = {item_id}"
         return self.db.select_one(sql)
 
     def get_download_task_items(self, task_id, status):
@@ -328,8 +331,11 @@ class Repository(object):
         """
         try:
             invalid_time = common_utils.get_date_around_today(days=+3, origin_date=datetime.now())
-            sql = f"update download_item set status = {ItemStatus.VALID.value}, url = '{url}', md5_value = {md5}, expire_time = {invalid_time}, file_name = {file_name} where id = {item_id}"
-            self.db.execute(sql)
+            sql = "update download_item set status = %(status)s, url = %(url)s , md5_value = %(md5)s, expire_time = %(invalid_time)s, file_name = %(file_name)s where id = %(item_id)s"
+            self.db.execute(sql, {
+                'status': ItemStatus.VALID.value,
+                'url': url, 'md5': md5, 'invalid_time': invalid_time, 'file_name': file_name, 'item_id': item_id
+            })
             self._logger.info(f"[ID:{item_id}]任务状态已完成, url:{url}, md5:{md5}")
         except Exception as e:
             self._logger.exception(e)

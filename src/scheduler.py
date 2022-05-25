@@ -38,6 +38,7 @@ class DownloadTaskScheduler(object):
                                         next_run_time=datetime.datetime.now(), max_instances=1)
         # heart_beat
         self.blocking_scheduler.add_job(self.heart_beat, "interval", seconds=60)
+        self.blocking_scheduler.start()
 
 
 class CtiDownloadTaskDispatcher(object):
@@ -64,6 +65,7 @@ class CtiDownloadTaskDispatcher(object):
         update_task = list()
         # 数据查询分组
         download_tasks = self.repository.get_download_tasks()
+        self._logger.info(f"获取到download_tasks数据:[{len(download_tasks)}]条")
         # 推任务到队列
         pip = self._redisCli.pipeline(transaction=True)
         for download_task in download_tasks:
@@ -80,10 +82,12 @@ class CtiDownloadTaskDispatcher(object):
             self.push_item_to_queue(this_items, pip)
             update_task.append(task_id)
         # 更新任务状态
-        self.repository.update_download_status(update_task=update_task)
-        self._logger.info(f"download_task[{update_task}]加入任务队列成功")
-        # pip执行
-        pip.execute()
+        if update_task:
+            self.repository.update_download_status(update_task=update_task)
+            self._logger.info(f"download_task[{update_task}]加入任务队列成功")
+            # pip执行
+            pip.execute()
+        pip.close()
         return None
 
     def push_item_to_queue(self, items: list, pipeline: Pipeline):
@@ -117,7 +121,8 @@ class CtiDownloadTaskDispatcher(object):
             for key, value in results.items():
                 key = int(bytes.decode(key))
                 value = bytes.decode(value)
-                info: SubTypeInfo = json.loads(value, cls=SubTypeInfo)
+                info_arr = json.loads(value)
+                info = SubTypeInfo(info_arr[0], info_arr[1], info_arr[2], info_arr[3], info_arr[4])
                 SUB_TYPE_QUEUE_DICT[key] = info.queue_key
 
 

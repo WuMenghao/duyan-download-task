@@ -3,7 +3,6 @@
 import loguru
 import pymysql
 from DBUtils.PooledDB import PooledDB
-from duyan_util import config_util
 
 ENCODING_UTF8 = "utf8"
 MAX_CONNECTION_SIZE = 'max_connection_size'
@@ -19,9 +18,8 @@ class DB(object):
         self.password = password
         self.db_name = db_name
         self.port = port
-        config = config_util.config_obj(file_path='../config.ini')
-        self.max_connection_size = int(config.get_value(config_util.CONFIG_MYSQL_SETTING_KEY, MAX_CONNECTION_SIZE) or 5)
-        self.max_cached_size = int(config.get_value(config_util.CONFIG_MYSQL_SETTING_KEY, MAX_CACHED_SIZE) or 5)
+        self.max_connection_size = max_connection_size if max_connection_size else 5
+        self.max_cached_size = max_connection_size if max_connection_size else 5
         self.pool = PooledDB(pymysql, mincached=max_cached_size or self.max_cached_size,
                              maxcached=max_cached_size or self.max_cached_size,
                              maxconnections=max_connection_size or self.max_connection_size,

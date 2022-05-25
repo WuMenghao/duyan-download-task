@@ -71,9 +71,8 @@ class RedisConfig(object):
         if not self.port:
             raise ConfigException("redis port can not be empty!")
         self.port = int(self.port)
-        self.password = config.get_value(CONFIG_KEY_DOWNLOAD_TASK, CONFIG_KEY_REDIS_PWD)
-        if not self.password:
-            raise ConfigException("redis password can not be empty!")
+        if not config.get_value(CONFIG_KEY_DOWNLOAD_TASK, CONFIG_KEY_REDIS_PWD):
+            self.password = config.get_value(CONFIG_KEY_DOWNLOAD_TASK, CONFIG_KEY_REDIS_PWD)
         self.db = config.get_value(CONFIG_KEY_DOWNLOAD_TASK, CONFIG_KEY_REDIS_DB)
         if not self.db:
             raise ConfigException("redis db can not be empty!")
