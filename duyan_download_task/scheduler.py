@@ -6,13 +6,13 @@ import redis
 from apscheduler.schedulers.blocking import BlockingScheduler
 from redis.client import Pipeline
 
-from src import constants
-from src.constants import TaskStatus, ItemStatus
-from src.model import DownloadTaskMain, DownloadItem
-from src.task import SubTypeInfo
-from src.utils import mysql_util, common_utils
-from src.utils.config_util import Config
-from src.utils.logger_util import LOG
+from duyan_download_task import constants
+from duyan_download_task.constants import TaskStatus, ItemStatus
+from duyan_download_task.model import DownloadTaskMain, DownloadItem
+from duyan_download_task.task import SubTypeInfo
+from duyan_download_task.utils import mysql_util, common_utils
+from duyan_download_task.utils.config_util import Config
+from duyan_download_task.utils.logger_util import LOG
 
 SUB_TYPE_QUEUE_DICT = {}  # TODO 放到redis 由子任务脚本注册
 

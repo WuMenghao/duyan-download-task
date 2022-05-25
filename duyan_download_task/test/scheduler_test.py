@@ -1,4 +1,4 @@
-from src import DownloadTaskScheduler
+from duyan_download_task import DownloadTaskScheduler
 
 
 def test_scheduler():

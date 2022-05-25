@@ -1,7 +1,7 @@
 import json
 
-from src import DownloadTaskBase, SubTypeInfo
-from src.model import DownloadTaskMain, DownloadItem
+from duyan_download_task import DownloadTaskBase, SubTypeInfo
+from duyan_download_task.model import DownloadTaskMain, DownloadItem
 
 
 class DemoTask(DownloadTaskBase):
@@ -25,7 +25,6 @@ def task_test():
     info = SubTypeInfo(task_name='DemoTask', type=10, sub_type=15, queue_key='demo_task_queue', is_multi_task=False)
     task = DemoTask(info, 'config.ini', 'demo_task')
     task.start()
-
 
 
 if __name__ == '__main__':

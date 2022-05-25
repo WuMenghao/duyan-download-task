@@ -8,11 +8,11 @@ import loguru
 import redis
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from src import constants
-from src.constants import ItemStatus, TaskStatus
-from src.model import DownloadItem, DownloadTaskMain
-from src.utils import common_utils, logger_util, mysql_util
-from src.utils.config_util import Config
+from duyan_download_task import constants
+from duyan_download_task.constants import ItemStatus, TaskStatus
+from duyan_download_task.model import DownloadItem, DownloadTaskMain
+from duyan_download_task.utils import common_utils, logger_util, mysql_util
+from duyan_download_task.utils.config_util import Config
 
 SubTypeInfo = namedtuple('SubTypeInfo', ['task_name', 'type', 'sub_type', 'queue_key', 'is_multi_task'])
 
