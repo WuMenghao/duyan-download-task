@@ -4,6 +4,58 @@
 
 #### 2、使用方式
 
+数据库表:
+```sql
+CREATE TABLE `download_task_main` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `org_id` bigint unsigned NOT NULL,
+  `task_name` varchar(64) DEFAULT NULL COMMENT '任务名称',
+  `platform` int NOT NULL COMMENT ' 生成平台 ， 1 ：cfg , 2:cti , 3 : open , 4: crm ',
+  `type` int NOT NULL COMMENT '导出类型 1: 导出联系人 ， 2 ：公司对账单导出 3 ： 导出 计划item 4 ：导出 通话记录统计分析 5 ： 录音下载 6 ：信修下载 7 .通话记录加录音下载',
+  `sub_type` int NOT NULL COMMENT '导出子类型 导出类型下 分出来的子类型 ',
+  `description` varchar(255) DEFAULT NULL COMMENT '描述',
+  `status` int DEFAULT '0' COMMENT ' 0 :任务创建中 , 1 : 文件上传中 ，2 ：文件上传完成 ,-1 :文件上传失败 3 : 任务失效  4：取消任务',
+  `top` int DEFAULT '0' COMMENT '是否置顶   0：否  1：是',
+  `data` varchar(1024) DEFAULT NULL COMMENT '序列化字段',
+  `notify` tinyint DEFAULT '0' COMMENT '是否通知 0：否 1：是',
+  `remark` varchar(256) DEFAULT NULL COMMENT '备注',
+  `created_by` bigint DEFAULT '0' COMMENT '创建人 , agent org id ',
+  `created_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `last_updated_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '最后更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `index_created_time` (`created_time`),
+  KEY `index_org_id_created_time` (`org_id`,`created_time`),
+  KEY `index_type` (`type`),
+  KEY `index_type_org_id` (`type`,`org_id`),
+  KEY `index_org_id_platform` (`org_id`,`platform`),
+  KEY `index_task_name_org_id` (`task_name`,`org_id`),
+  KEY `index_sub_type_status` (`sub_type`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='下载任务表';
+
+CREATE TABLE `download_item` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键 ',
+  `task_id` bigint NOT NULL COMMENT '主任务id',
+  `org_id` bigint unsigned NOT NULL COMMENT ' 公司ID ',
+  `type` int DEFAULT NULL COMMENT '下载类型。一般跟 task的 子类型相同 ',
+  `file_name` varchar(256) DEFAULT NULL COMMENT '文件名称',
+  `target_id` bigint DEFAULT NULL COMMENT '关联id',
+  `expire_time` timestamp NULL DEFAULT NULL COMMENT '过期时间',
+  `download_times` int DEFAULT NULL COMMENT '下载次数',
+  `url` varchar(1024) DEFAULT NULL COMMENT '文件下载地址',
+  `status` int DEFAULT '0' COMMENT '0 :未开始 ， 1: 进行中 ，2:已完成 ，3 ：失效(针对下载次数超限) -1 :任务失败  4：取消任务',
+  `data` varchar(1024) DEFAULT NULL COMMENT '序列化字段',
+  `remark` varchar(256) DEFAULT NULL COMMENT '备注',
+  `md5_value` varchar(45) DEFAULT NULL COMMENT '文件MD5',
+  `created_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `last_updated_time` timestamp(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '最后更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `index_created_time` (`created_time`),
+  KEY `index_task_id` (`task_id`),
+  KEY `index_task_id_org_id` (`task_id`,`org_id`),
+  KEY `index_org_id_target_id` (`org_id`,`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='下载任务明细';
+```
+
 示例：
 
 1、配置文件
