@@ -186,7 +186,7 @@ class DownloadTaskBase:
         if not self.task_info.is_multi_task:
             self._logger.info(f"非多子任务任务，无需任务拆分!")
             return
-        tasks = self.repository.get_download_task_ready()
+        tasks = self.repository.get_download_task_ready(self.task_info.sub_type)
 
         for task in tasks:
             item_data_list = []
@@ -202,6 +202,7 @@ class DownloadTaskBase:
                 time.sleep(0.5)
                 items = self.repository.get_download_task_items(task.id, ItemStatus.READY.value)
                 self.push_item_to_queue(items)
+                self.repository.update_download_status(task.id, TaskStatus.PROCESSING.value)
                 self._logger.info(f"任务:[TASK_ID:{task.id}],拆分子任务完成!")
 
     def push_item_to_queue(self, items: list):
@@ -220,6 +221,7 @@ class DownloadTaskBase:
                 self._logger.info(f"download_item[ID:{item_id}]加入任务队列{self.TASK_QUEUE_KEY}成功,sub_type:{sub_type}")
             else:
                 self._logger.error(f"不存在的子类型,download_item[ID]:{item_id},sub_type:{sub_type}")
+        pipeline.execute()
 
     def heart_beat(self):
         task = []
@@ -268,16 +270,26 @@ class Repository(object):
                                 config.db_config.db_name)
         self._logger = loguru.logger
 
-    def get_download_task_ready(self):
+    def get_download_task_ready(self, sub_type):
         """
         获取download_task列表
         :return:
         """
         limit_time = common_utils.get_date_around_today(days=-3, origin_date=date.today())
-        sql = "select * from download_task_main where created_time > %(limit_time)s and status = %(status)s limit 1000"
+        sql = "select * from download_task_main where created_time > %(limit_time)s and sub_type = %(sub_type)s and status = %(status)s limit 1000"
         download_tasks = self.db.select_by_param(sql,
-                                                 {'status': TaskStatus.READY.value, 'limit_time': limit_time})
+                                                 {'status': TaskStatus.READY.value, 'sub_type': sub_type,
+                                                  'limit_time': limit_time})
         return download_tasks
+
+    def update_download_status(self, task_id, status):
+        """
+        更新任务状态
+        :param update_task:
+        :return:
+        """
+        sql = "update download_task_main set status = %(status)s where id =  %(taskId)s"
+        self.db.execute(sql, {'status': status, 'taskId': task_id})
 
     def get_task_item(self, item_id):
         """
@@ -296,7 +308,7 @@ class Repository(object):
         :return:
         """
         sql = f"select * from download_item where task_id = {task_id} and status = {status}"
-        raise self.db.select(sql)
+        return self.db.select(sql)
 
     def finish_task_with_error(self, item_id, data=None, message="未知错误"):
         """

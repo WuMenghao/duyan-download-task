@@ -3,7 +3,7 @@ import os
 
 import loguru
 
-from src import constants
+from duyan_download_task import constants
 
 CONFIG_KEY_DOWNLOAD_TASK = 'download_task'
 CONFIG_KEY_DB_HOST = 'dbHost'

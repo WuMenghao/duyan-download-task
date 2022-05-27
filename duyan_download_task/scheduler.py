@@ -15,6 +15,7 @@ from duyan_download_task.utils.config_util import Config
 from duyan_download_task.utils.logger_util import LOG
 
 SUB_TYPE_QUEUE_DICT = {}  # TODO 放到redis 由子任务脚本注册
+SUB_TYPE_INFO_DICT = {}
 
 
 class DownloadTaskScheduler(object):
@@ -73,14 +74,17 @@ class CtiDownloadTaskDispatcher(object):
             # 不处理通话记录导出
             # if not is_call_log_task(download_task_po.type) and not is_pre_download_task(download_task_po.sub_type):
             task_id = download_task_po.id
-            # 筛选item
-            this_items = self.repository.get_download_items(task_id)
-            # 未查到 跳过
-            if this_items is None or len(this_items) == 0:
-                continue
-            # 推item到队列
-            self.push_item_to_queue(this_items, pip)
-            update_task.append(task_id)
+            # 非多子任务任务直接推队列
+            task_info = SUB_TYPE_INFO_DICT.get(download_task_po.sub_type)
+            if not task_info.is_multi_task:
+                # 筛选item
+                this_items = self.repository.get_download_items(task_id)
+                # 未查到 跳过
+                if this_items is None or len(this_items) == 0:
+                    continue
+                # 推item到队列
+                self.push_item_to_queue(this_items, pip)
+                update_task.append(task_id)
         # 更新任务状态
         if update_task:
             self.repository.update_download_status(update_task=update_task)
@@ -124,6 +128,7 @@ class CtiDownloadTaskDispatcher(object):
                 info_arr = json.loads(value)
                 info = SubTypeInfo(info_arr[0], info_arr[1], info_arr[2], info_arr[3], info_arr[4])
                 SUB_TYPE_QUEUE_DICT[key] = info.queue_key
+                SUB_TYPE_INFO_DICT[key] = info
 
 
 class CtiDownloadTaskStatusManager(object):

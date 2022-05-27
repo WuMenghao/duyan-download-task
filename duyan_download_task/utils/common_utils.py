@@ -8,7 +8,7 @@ from typing import Union
 import loguru
 from apscheduler.triggers.cron import CronTrigger
 
-from src import constants
+from duyan_download_task import constants
 
 
 def is_json(string: Union[str, bytes, bytearray]) -> bool:
