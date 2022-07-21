@@ -172,6 +172,15 @@ class CtiDownloadTaskStatusManager(object):
                 fail_task.append(download_task_po.id)
                 continue
 
+            # 完成 ：完成子任务数 + 过期子任务数 +失败子任务数  == 非带参子任务数
+            valid_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.VALID.value)
+            expired_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.EXCEED.value)
+            failed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.FAIL.value)
+            real_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id)
+            if len(expired_items) + len(failed_items) + len(valid_items) == len(real_items):
+                complete_task.append(download_task_po.id)
+                continue
+
         # 完成的任务更新为 过期
         expire_task = []
         expire_items = []
@@ -190,10 +199,10 @@ class CtiDownloadTaskStatusManager(object):
             # if is_everyday_pre_download_task(download_task_po.sub_type):
             #     continue
             # task 所有非带参item都过期 过期task
-            exceed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id,
-                                                                                    ItemStatus.EXCEED.value)
+            exceed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.EXCEED.value)
+            failed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.FAIL.value)
             real_items = self.repository.get_all_download_items(download_task_po.id)
-            if len(exceed_items) > 0 and len(exceed_items) == len(real_items):
+            if len(exceed_items) + len(failed_items) == len(real_items):
                 expire_task.append(download_task_po.id)
                 continue
 

@@ -21,6 +21,38 @@ class DownloadTaskBase:
 
     def __init__(self, task_info: SubTypeInfo, config_path: str, logger_name: str, max_job=1,
                  cron="0 0-59/2 * * * *"):
+        """
+        init task
+        :param task_info:
+            SubTypeInfo 任务级别信息包括 名称、类型、子任务类型、任务队列、是否是多任务定义
+                task_name 名称 type 类型 sub_type 子任务类型 queue_key 任务队列 is_multi_task 是否是多任务定义
+            任务队列维护在redis中
+        :param config_path:
+            配置文件所在路径 如 ./config.ini
+        :param logger_name:
+            日志文件名称， 日志文件默认在./log目录下
+        :param max_job:
+            最大支持并发数量
+        :param cron:
+            任务执行周期cron表达式
+            秒 分 时 日 月 年
+            *       表示所有值
+            */a     表示每隔a时间
+            a-b     表示a-b之间任何一个时间
+            a-b/c   表示a-b之间每隔c时间
+
+            取值范围：
+            秒 0-59
+            分 0-59
+            时 0-23
+            日 1-31
+            月 1-12
+            年 四位数字
+
+            示例：
+            0 */2 * * * * 每2分钟执行一次
+            */1 * * * * * 每2秒执行一次
+        """
         self._logger = logger_util.LOG.get_logger(logger_name, enqueue=True)
         # 配置
         self._config = Config(config_path)
