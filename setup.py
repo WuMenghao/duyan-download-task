@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="duyan-download-task",
-    version="0.0.5",
+    version="0.0.6",
     author="WuMenghao",
     author_email="menghao.wu@duyansoft.com",
     description="Using for Debug, finding problem",
