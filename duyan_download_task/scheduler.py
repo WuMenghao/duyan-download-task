@@ -176,7 +176,7 @@ class CtiDownloadTaskStatusManager(object):
             valid_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.VALID.value)
             expired_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.EXCEED.value)
             failed_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id, ItemStatus.FAIL.value)
-            real_items = self.repository.get_download_items_by_task_id_and_status(download_task_po.id)
+            real_items = self.repository.get_download_items(download_task_po.id)
             if len(expired_items) + len(failed_items) + len(valid_items) == len(real_items):
                 complete_task.append(download_task_po.id)
                 continue
